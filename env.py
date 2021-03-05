@@ -5,7 +5,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-ACTION_REPEAT_NUM = 4
+ACTION_REPEAT_NUM = 10
 
 
 ## TetrisA-vo environment
@@ -22,9 +22,12 @@ ACTION_REPEAT_NUM = 4
 
 class Environment():
     def __init__(self):
-        self.env = gym_tetris.make('TetrisA-v2')
+        self.env = gym_tetris.make('TetrisA-v0')
         self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
         self.env.reset()
+        self.number_of_lines = 0
+        self.board_height = 0
+        self.score = 0
 
     # state preprocess
     # (240, 256, 3) -> (84, 84, 1)
@@ -38,12 +41,18 @@ class Environment():
     def step(self, action, render=False):
         if action > 6:
             action = 0
-        reward = 0
         for i in range(ACTION_REPEAT_NUM):
             state, r, done, info = self.env.step(action)
-            reward += r
             if done:
                 break
+        board_height = info["board_height"]
+        number_of_lines = info["number_of_lines"]
+        reward = (number_of_lines - self.number_of_lines) * 100 - (board_height - self.board_height)
+        self.number_of_lines = number_of_lines
+        self.board_height = board_height
+        self.score = info["score"]
+        if action == 5:
+            reward += 0.01
         if render:
             self.env.render()
         if done:
@@ -52,9 +61,21 @@ class Environment():
 
     def reset(self):
         state = self.env.reset()
+        self.number_of_lines = 0
+        self.board_height = 0
+        self.score = 0
         return self.state_preprocess(state)
 
     def close(self):
         self.env.close()
 
+# env = Environment()
+# env.reset()
+# for i in range(1000):
+#     s, r, d = env.step(np.random.randint(6), render=True)
+#     print(d)
+#     if d:
+#         break
+
+# print(env.score)
 

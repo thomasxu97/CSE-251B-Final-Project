@@ -13,8 +13,9 @@ DEVICE = "cpu"
 NUM_ITERATION = 40
 LEARNING_RATE = 0.00025
 MAX_MEMORY = 1000000
-EXPLORE_FREQUENCY = 100
-TRAIN_FREQUENCY = 100
+EXPLORE_FREQUENCY = 10000
+TRAIN_FREQUENCY = 10000
+EVALUATION_EPISODES = 10
 BATCH_SIZE = 32
 GAMMA = 0.99
 INITIAL_EXPLORATION = 1.0
@@ -128,14 +129,32 @@ class TrainSolver:
                 else:
                     Q[j][action] = reward + GAMMA * V[j]
             self.agent.optimize_step(state_batch, Q)
-            progressBar(i + 1, TRAIN_FREQUENCY, "Train Progress")
+            progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
+
+    def evaluation(self):
+        total_score = 0
+        for i in range(EVALUATION_EPISODES):
+            done = False
+            state = self.env.reset()
+            while not done:
+                action = self.agent.optimal_action(state)
+                state, r, done = self.env.step(action)
+            total_score += self.env.score
+            progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
+        print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
+
+
+    def trainSolver(self):
+        while self.iteration < NUM_ITERATION:
+            self.exploration()
+            self.training()
+            self.evaluation()
+            self.iteration += 1
 
 
 trainSolver = TrainSolver()
-trainSolver.exploration()
-trainSolver.training()
-
+trainSolver.trainSolver()
 
 
 # class TestSolver:
