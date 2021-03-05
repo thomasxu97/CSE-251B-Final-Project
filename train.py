@@ -44,6 +44,7 @@ class Agent:
             self.device = "cuda"
         else:
             self.device = "cpu"
+        self.dqn.to(self.device)
 
     def init_weights(self, m):
         if type(m) == torch.nn.Conv2d or type(m) == torch.nn.Linear:
@@ -67,7 +68,7 @@ class Agent:
         self.dqn.zero_grad()
         inputs = torch.from_numpy(state_batch.copy()).to(self.device)
         outputs = self.dqn(inputs)
-        targetQ = torch.from_numpy(targetQ.copy()).to(sefl.device)
+        targetQ = torch.from_numpy(targetQ.copy()).to(self.device)
         loss = self.criterion(outputs, targetQ)
         loss.backward()
         self.optimizer.step()
@@ -130,7 +131,7 @@ class TrainSolver:
                 else:
                     Q[j][action] = reward + GAMMA * V[j]
             self.agent.optimize_step(state_batch, Q)
-            progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
+            #progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
 
     def evaluation(self):
@@ -142,7 +143,7 @@ class TrainSolver:
                 action = self.agent.optimal_action(state)
                 state, r, done = self.env.step(action)
             total_score += self.env.score
-            progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
+            # progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
 
 
@@ -154,6 +155,6 @@ class TrainSolver:
             self.iteration += 1
 
 
-# trainSolver = TrainSolver()
-# trainSolver.trainSolver()
+trainSolver = TrainSolver()
+trainSolver.trainSolver()
 
