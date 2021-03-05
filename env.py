@@ -56,7 +56,8 @@ class Environment():
         if render:
             self.env.render()
         if done:
-            self.env.reset()       
+            self.env.reset()
+            reward -= 400
         return self.state_preprocess(state), reward, done
 
     def reset(self):

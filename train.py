@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import sys
 
 
-DEVICE = "cpu"
 NUM_ITERATION = 40
 LEARNING_RATE = 0.00025
 MAX_MEMORY = 1000000
@@ -40,9 +39,11 @@ class Agent:
         self.memory = deque(maxlen = MAX_MEMORY)
         self.optimizer = optim.Adam(self.dqn.parameters(), lr=LEARNING_RATE)
         self.criterion = torch.nn.MSELoss()
-        # use_gpu = torch.cuda.is_available()
-        # if use_gpu:
-        #     self.dqn = self.dqn.cuda()
+        self.use_gpu = torch.cuda.is_available()
+        if self.use_gpu:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
 
     def init_weights(self, m):
         if type(m) == torch.nn.Conv2d or type(m) == torch.nn.Linear:
@@ -53,20 +54,20 @@ class Agent:
         self.memory.append((s1, a, r, s2, done))
 
     def evaluate_q(self, state):
-        inputs = torch.from_numpy(state.copy())
-        q_value = self.dqn(inputs).detach().numpy()
+        inputs = torch.from_numpy(state.copy()).to(self.device)
+        q_value = self.dqn(inputs).detach().cpu().numpy()
         return q_value
 
     def optimal_action(self, state):
-        inputs = torch.from_numpy(state.copy())
-        q_value = self.dqn(inputs).detach().numpy()
+        inputs = torch.from_numpy(state.copy()).to(self.device)
+        q_value = self.dqn(inputs).detach().cpu().numpy()
         return np.argmax(q_value)
 
     def optimize_step(self, state_batch, targetQ):
         self.dqn.zero_grad()
-        inputs = torch.from_numpy(state_batch.copy())
+        inputs = torch.from_numpy(state_batch.copy()).to(self.device)
         outputs = self.dqn(inputs)
-        targetQ = torch.from_numpy(targetQ.copy())
+        targetQ = torch.from_numpy(targetQ.copy()).to(sefl.device)
         loss = self.criterion(outputs, targetQ)
         loss.backward()
         self.optimizer.step()
@@ -153,38 +154,6 @@ class TrainSolver:
             self.iteration += 1
 
 
-trainSolver = TrainSolver()
-trainSolver.trainSolver()
-
-
-# class TestSolver:
-#     def __init__(self, max_len, average_of_last_runs, model = None):
-#         self.max_len = max_len
-#         self.score_table = deque(maxlen=self.max_len)
-#         self.model = model
-#         self.average_of_last_runs = average_of_last_runs
-
-#     def store_score(self, episode, step):
-#         self.score_table.append([episode, step])
-
-#     def plot_evaluation(self, title = "Training"):
-#         print(self.model.summary()) if self.model is not None else print("Model not defined!")
-#         avg_score = mean(self.score_table[1])
-#         x = []
-#         y = []
-#         for i in range(len(self.score_table)):
-#             x.append(self.score_table[i][0])
-#             y.append(self.score_table[i][1])
-
-#         average_range = self.average_of_last_runs if self.average_of_last_runs is not None else len(x)
-#         plt.plot(x, y, label="score per run")
-#         plt.plot(x[-average_range:], [np.mean(y[-average_range:])] * len(y[-average_range:]), linestyle="--",
-#                  label="last " + str(average_range) + " runs average")
-#         title = "CartPole-v1 " + str(title)
-#         plt.title(title)
-#         plt.xlabel("Runs")
-#         plt.ylabel("Score")
-#         plt.show()
-
-
+# trainSolver = TrainSolver()
+# trainSolver.trainSolver()
 
