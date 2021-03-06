@@ -131,7 +131,7 @@ class TrainSolver:
                 else:
                     Q[j][action] = reward + GAMMA * V[j]
             self.agent.optimize_step(state_batch, Q)
-            #progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
+            progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
 
     def evaluation(self):
@@ -143,7 +143,7 @@ class TrainSolver:
                 action = self.agent.optimal_action(state)
                 state, r, done = self.env.step(action)
             total_score += self.env.score
-            # progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
+            progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
 
 
