@@ -5,7 +5,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-ACTION_REPEAT_NUM = 10
+ACTION_REPEAT_NUM = 4
 
 
 ## TetrisA-vo environment
