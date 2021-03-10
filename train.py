@@ -44,6 +44,7 @@ class Agent:
             self.device = "cuda"
         else:
             self.device = "cpu"
+        self.dqn.to(self.device)
 
     def init_weights(self, m):
         if type(m) == torch.nn.Conv2d or type(m) == torch.nn.Linear:
