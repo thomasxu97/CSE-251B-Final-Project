@@ -100,6 +100,7 @@ class TrainSolver:
     def exploration(self):
         i = 0
         state = self.env.reset()
+        self.state_frame = np.zeros((1, 4, 84, 84))
         self.state_frame[:,3,:,:] = state
         while i < EXPLORE_FREQUENCY:
             action = self.agent.optimal_action(self.state_frame)
@@ -145,9 +146,13 @@ class TrainSolver:
         for i in range(EVALUATION_EPISODES):
             done = False
             state = self.env.reset()
+            self.state_frame = np.zeros((1, 4, 84, 84))
+            self.state_frame[:,3,:,:] = state
             while not done:
-                action = self.agent.optimal_action(state)
+                action = self.agent.optimal_action(self.state_frame)
                 state, r, done = self.env.step(action)
+                self.state_frame[:,0:3,:,:] = self.state_frame[:,1:4,:,:]
+                self.state_frame[:,3,:,:] = state
             total_score += self.env.score
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
