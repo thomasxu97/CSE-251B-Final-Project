@@ -1,5 +1,5 @@
 from basicDQN import DQN
-from env import Environment
+from env_pong import Environment
 from collections import deque
 import numpy as np
 import random
@@ -79,6 +79,7 @@ class TrainSolver:
         self.env = Environment()
         self.iteration = 0
         self.frame = 0
+        self.state_frame = np.zeros((1, 4, 84, 84))
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -98,15 +99,20 @@ class TrainSolver:
     def exploration(self):
         i = 0
         state = self.env.reset()
+        self.state_frame[:,3,:,:] = state
         while i < EXPLORE_FREQUENCY:
-            action = self.agent.optimal_action(state)
+            action = self.agent.optimal_action(self.state_frame)
             action = self.exploration_policy(action)
 
             next_state, reward, done = self.env.step(action)
+            self.state_frame[:,0:3,:,:] = self.state_frame[:,1:4,:,:]
+            self.state_frame[:,3,:,:] = next_state
             self.agent.add_to_memory(state, action, reward, next_state, done)
             state = next_state
             if done:
                 state = self.env.reset()
+                self.state_frame = np.zeros((1, 4, 84, 84))
+                self.state_frame[:,3,:,:] = state
 
             i += 1
             self.frame += 1
@@ -115,8 +121,8 @@ class TrainSolver:
         i = 0
         while i < TRAIN_FREQUENCY:
             minibatch = random.sample(self.agent.memory, BATCH_SIZE)
-            state_batch = np.zeros((BATCH_SIZE, 1, 84, 84))
-            next_state_batch = np.zeros((BATCH_SIZE, 1, 84, 84))
+            state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
+            next_state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
             for j in range(BATCH_SIZE):
                 state, action, reward, next_state, done = minibatch[j]
                 state_batch[j,:,:,:] = state

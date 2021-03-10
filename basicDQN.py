@@ -29,7 +29,7 @@ class DQN(nn.Module):
         super().__init__()
         self.action_space = action_space
         self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=8, stride=4, padding=2)
+        self.conv1 = nn.Conv2d(4, 16, kernel_size=8, stride=4, padding=2)
         self.bnd1 = nn.BatchNorm2d(16)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=4, stride=2, padding=1)
         self.bnd2 = nn.BatchNorm2d(32)
