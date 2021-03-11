@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import sys
 
 
-NUM_ITERATION = 40
+NUM_ITERATION = 100
 LEARNING_RATE = 0.00025
 MAX_MEMORY = 1000000
 EXPLORE_FREQUENCY = 10000
@@ -80,7 +80,7 @@ class TrainSolver:
         self.env = Environment()
         self.iteration = 0
         self.frame = 0
-        self.state_frame = np.zeros((1, 4, 84, 84))
+        self.state = np.zeros((1, 4, 84, 84))
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -100,22 +100,20 @@ class TrainSolver:
     def exploration(self):
         i = 0
         state = self.env.reset()
-        self.state_frame = np.zeros((1, 4, 84, 84))
-        self.state_frame[:,3,:,:] = state
+        self.state = np.zeros((1, 4, 84, 84))
+        self.state[:,3,:,:] = state
         while i < EXPLORE_FREQUENCY:
-            action = self.agent.optimal_action(self.state_frame)
+            action = self.agent.optimal_action(self.state)
             action = self.exploration_policy(action)
-
-            next_state, reward, done = self.env.step(action)
-            self.state_frame[:,0:3,:,:] = self.state_frame[:,1:4,:,:]
-            self.state_frame[:,3,:,:] = next_state
-            self.agent.add_to_memory(state, action, reward, next_state, done)
-            state = next_state
+            state, reward, done = self.env.step(action)
+            prev_state = self.state.copy()
+            self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
+            self.state[:,3,:,:] = state
+            self.agent.add_to_memory(prev_state, action, reward, self.state, done)
             if done:
                 state = self.env.reset()
-                self.state_frame = np.zeros((1, 4, 84, 84))
-                self.state_frame[:,3,:,:] = state
-
+                self.state = np.zeros((1, 4, 84, 84))
+                self.state[:,3,:,:] = state
             i += 1
             self.frame += 1
 
@@ -146,14 +144,14 @@ class TrainSolver:
         for i in range(EVALUATION_EPISODES):
             done = False
             state = self.env.reset()
-            self.state_frame = np.zeros((1, 4, 84, 84))
-            self.state_frame[:,3,:,:] = state
+            self.state = np.zeros((1, 4, 84, 84))
+            self.state[:,3,:,:] = state
             while not done:
-                action = self.agent.optimal_action(self.state_frame)
-                state, r, done = self.env.step(action)
-                self.state_frame[:,0:3,:,:] = self.state_frame[:,1:4,:,:]
-                self.state_frame[:,3,:,:] = state
-                total_score += r
+                action = self.agent.optimal_action(self.state)
+                state, reward, done = self.env.step(action)
+                self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
+                self.state[:,3,:,:] = state
+                total_score += reward
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
 
