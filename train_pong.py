@@ -72,6 +72,7 @@ class Agent:
         loss = self.criterion(outputs, targetQ)
         loss.backward()
         self.optimizer.step()
+        return loss
 
 
 class TrainSolver:
@@ -119,6 +120,7 @@ class TrainSolver:
 
     def training(self):
         i = 0
+        sum_loss = 0
         while i < TRAIN_FREQUENCY:
             minibatch = random.sample(self.agent.memory, BATCH_SIZE)
             state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
@@ -135,9 +137,11 @@ class TrainSolver:
                     Q[j][action] = reward
                 else:
                     Q[j][action] = reward + GAMMA * V[j]
-            self.agent.optimize_step(state_batch, Q)
+            loss = self.agent.optimize_step(state_batch, Q)
+            sum_loss += loss
             progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
+        print(" - Loss: " + str(sum_loss/TRAIN_FREQUENCY))
 
     def evaluation(self):
         total_score = 0
@@ -154,6 +158,14 @@ class TrainSolver:
                 total_score += reward
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
+
+    def checkpoint(self):
+        torch.save({
+            'epoch': self.iteration,
+            'model_state_dict': self.agent.dqn.state_dict(),
+            'optimizer_state_dict': self.agent.optimizer.state_dict(),
+            'loss': LOSS,
+        }, PATH)
 
 
     def trainSolver(self):
