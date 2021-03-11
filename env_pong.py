@@ -39,3 +39,11 @@ class Environment():
     def close(self):
         self.env.close()
 
+# env = Environment()
+
+# env.reset()
+# for i in range(1000):
+#     s, r, d = env.step(np.random.randint(6), render=True)
+#     if d:
+#         break
+

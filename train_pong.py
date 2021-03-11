@@ -153,7 +153,7 @@ class TrainSolver:
                 state, r, done = self.env.step(action)
                 self.state_frame[:,0:3,:,:] = self.state_frame[:,1:4,:,:]
                 self.state_frame[:,3,:,:] = state
-            total_score += self.env.score
+                total_score += r
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
 
