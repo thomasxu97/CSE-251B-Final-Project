@@ -206,7 +206,7 @@ class TrainSolver:
             self.training()
             self.evaluation()
             self.iteration += 1
-            self.checkpoint(self.savepath)
+            self.checkpoint(self.savepath, self.memorysavepath)
 
 
 trainSolver = TrainSolver()
