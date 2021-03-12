@@ -7,20 +7,21 @@ import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import sys
+from os import path
 
 
 NUM_ITERATION = 100
 LEARNING_RATE = 0.00025
-MAX_MEMORY = 1000000
-EXPLORE_FREQUENCY = 10000
-TRAIN_FREQUENCY = 10000
+MAX_MEMORY = 50000
+EXPLORE_FREQUENCY = 5000
+TRAIN_FREQUENCY = 5000
 EVALUATION_EPISODES = 10
 BATCH_SIZE = 32
 GAMMA = 0.99
 INITIAL_EXPLORATION = 1.0
 FINAL_EXPLORATION = 0.1
-INITIAL_EXPLORATION_FRAME = 50000
-FINAL_EXPLORATION_FRAME = 1000000
+INITIAL_EXPLORATION_FRAME = 25000
+FINAL_EXPLORATION_FRAME = 500000
 ACTION_SAPCE = 6
 
 def progressBar(i, max, text):
@@ -72,7 +73,7 @@ class Agent:
         loss = self.criterion(outputs, targetQ)
         loss.backward()
         self.optimizer.step()
-        return loss
+        return loss.detach().cpu().numpy()
 
 
 class TrainSolver:
@@ -82,7 +83,9 @@ class TrainSolver:
         self.iteration = 0
         self.frame = 0
         self.state = np.zeros((1, 4, 84, 84))
-        self.savepath = "./cktp/"
+        self.savepath = "./ckpt/model.pt"
+        if path.exists(self.savepath):
+            self.loadCheckpoint(self.savepath)
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -111,7 +114,7 @@ class TrainSolver:
             prev_state = self.state.copy()
             self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
             self.state[:,3,:,:] = state
-            self.agent.add_to_memory(prev_state, action, reward, self.state, done)
+            self.agent.add_to_memory(prev_state, action, reward, self.state.copy(), done)
             if done:
                 state = self.env.reset()
                 self.state = np.zeros((1, 4, 84, 84))
@@ -143,6 +146,7 @@ class TrainSolver:
             progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
         print(" - Loss: " + str(sum_loss/TRAIN_FREQUENCY))
+        print("Sample Q Value: " + str(Q))
 
     def evaluation(self):
         total_score = 0
@@ -160,9 +164,23 @@ class TrainSolver:
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
 
+    def evaluation_with_render(self):
+        done = False
+        state = self.env.reset()
+        self.state = np.zeros((1, 4, 84, 84))
+        self.state[:,3,:,:] = state
+        while not done:
+            action = self.agent.optimal_action(self.state)
+            print(action)
+            print(self.agent.evaluate_q(self.state))
+            state, reward, done = self.env.step(action, render = True)
+            self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
+            self.state[:,3,:,:] = state
+
     def checkpoint(self, savepath):
         torch.save({
             'epoch': self.iteration,
+            'frame': self.frame,
             'model_state_dict': self.agent.dqn.state_dict(),
             'optimizer_state_dict': self.agent.optimizer.state_dict(),
             'memory': self.agent.memory
@@ -172,8 +190,11 @@ class TrainSolver:
         checkpoint = torch.load(savepath)
         self.agent.dqn.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.agent.memory = checkpoint('memory')
-        self.iteration = checkpoint('epoch')
+        self.agent.memory = checkpoint['memory']
+        self.iteration = checkpoint['epoch']
+        self.frame = checkpoint['frame']
+        self.fram
+        print("loaded savemodel iteration = " + str(self.iteration))
 
 
     def trainSolver(self):
@@ -187,4 +208,5 @@ class TrainSolver:
 
 trainSolver = TrainSolver()
 trainSolver.trainSolver()
+#trainSolver.evaluation_with_render()
 
