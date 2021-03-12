@@ -1,4 +1,4 @@
-from LSTMdqn import LSTMDQN
+from LSTMdqn import *
 from env_pong import Environment
 from collections import deque
 import numpy as np
@@ -65,14 +65,14 @@ class Agent:
     def evaluate_q(self, state):
         inputs = torch.from_numpy(state.copy()).to(self.device)
         #lstm update train 
-        action, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state = self.LSTMDQN(inputs, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state)
+        action, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state = self.LSTMDQN.forward(inputs, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state)
         q_value = action.detach().cpu().numpy()
         return q_value
 
     def optimal_action(self, state):
         inputs = torch.from_numpy(state.copy()).to(self.device)
         #lstm update optimize 
-        action, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state = self.LSTMDQN(inputs, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state)
+        action, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state = self.LSTMDQN.forward(inputs, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state)
         q_value = action.detach().cpu().numpy()
 
         return np.argmax(q_value)
@@ -82,7 +82,7 @@ class Agent:
         self.dqn.zero_grad()
         inputs = torch.from_numpy(state_batch.copy()).to(self.device)
         #lstm update
-        outputs, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state = self.LSTMDQN(inputs, LSTMDQN_hidden_state, LSTMDQN_cell_state)
+        outputs, self.LSTMDQN_hidden_state, self.LSTMDQN_cell_state = self.LSTMDQN.forward(inputs, LSTMDQN_hidden_state, LSTMDQN_cell_state)
         
         targetQ = torch.from_numpy(targetQ.copy()).to(self.device)
         loss = self.criterion(outputs, targetQ)

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 from torch.autograd import Variable
 
 # ----------------------------------------------------------------
@@ -27,6 +28,8 @@ from torch.autograd import Variable
 
 LSTM_MEMORY = 128
 
+
+
 class LSTMDQN(nn.Module):
     def __init__(self, action_space):
         super().__init__()
@@ -37,10 +40,12 @@ class LSTMDQN(nn.Module):
         self.conv2 = nn.Conv2d(16, 32, kernel_size=4, stride=2, padding=1)
         self.bnd2 = nn.BatchNorm2d(32)
         
-        self.lstm = nn.LSTM(100, LSTM_MEMORY, 1) 
+       # self.lstm = nn.LSTM(100, LSTM_MEMORY, 1) 
+
+        self.lstm = nn.LSTM(32, LSTM_MEMORY, 1)  # (Input, Hidden, Num Layers)
         
-        self.fc1 = nn.Linear(LSTM_MEMORY, 256)
-        self.fc2 = nn.Linear(256, self.action_space)
+        self.fc1 = nn.Linear(1280, 10)
+        self.fc2 = nn.Linear(10, self.action_space)
         
         
     
@@ -48,24 +53,27 @@ class LSTMDQN(nn.Module):
         # convolution 
         x = self.bnd1(self.relu(self.conv1(x)))
         x = self.bnd2(self.relu(self.conv2(x)))
-        #print(x.shape)
+
         
-     
         #LSTM 
-        x = x.view(x.size(0), x.size(1), 100) 
-        x, (next_hidden_state, next_cell_state) = self.lstm(x, (hidden_state, cell_state))
-        x = x.view(x.size(0), -1) 
-      #  print(x.shape)
+        x = x.view(x.size(2), x.size(3), 32) 
+        
+        x, (next_hidden_state, next_cell_state) = self.lstm(x,( hidden_state, cell_state))
+     #   x
+        
         
         #fully connected 
+        x = torch.flatten(x, 1)
+        
+
         x = self.relu(self.fc1(x))
         x = self.fc2(x)
         
         return x, next_hidden_state, next_cell_state
     
     def init_states(self) -> [Variable, Variable]:
-        hidden_state = Variable(torch.zeros(1, 32, LSTM_MEMORY).cuda())
-        cell_state = Variable(torch.zeros(1, 32, LSTM_MEMORY).cuda())
+        hidden_state = Variable(torch.zeros(1, 10, LSTM_MEMORY).cuda())
+        cell_state = Variable(torch.zeros(1, 10, LSTM_MEMORY).cuda())
         return hidden_state, cell_state
 
     def reset_states(self, hidden_state, cell_state):
