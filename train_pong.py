@@ -82,6 +82,7 @@ class TrainSolver:
         self.iteration = 0
         self.frame = 0
         self.state = np.zeros((1, 4, 84, 84))
+        self.savepath = "./cktp/"
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -159,13 +160,20 @@ class TrainSolver:
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
 
-    def checkpoint(self):
+    def checkpoint(self, savepath):
         torch.save({
             'epoch': self.iteration,
             'model_state_dict': self.agent.dqn.state_dict(),
             'optimizer_state_dict': self.agent.optimizer.state_dict(),
-            'loss': LOSS,
-        }, PATH)
+            'memory': self.agent.memory
+        }, savepath)
+
+    def loadCheckpoint(self, savepath):
+        checkpoint = torch.load(savepath)
+        self.agent.dqn.load_state_dict(checkpoint['model_state_dict'])
+        self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.agent.memory = checkpoint('memory')
+        self.iteration = checkpoint('epoch')
 
 
     def trainSolver(self):
@@ -174,6 +182,7 @@ class TrainSolver:
             self.training()
             self.evaluation()
             self.iteration += 1
+            self.checkpoint(self.savepath)
 
 
 trainSolver = TrainSolver()
