@@ -8,7 +8,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import sys
 from os import path
-
+import pickle
 
 NUM_ITERATION = 100
 LEARNING_RATE = 0.00025
@@ -84,8 +84,9 @@ class TrainSolver:
         self.frame = 0
         self.state = np.zeros((1, 4, 84, 84))
         self.savepath = "./ckpt/model.pt"
+        self.memorysavepath = "./ckpt/memory.obj"
         if path.exists(self.savepath):
-            self.loadCheckpoint(self.savepath)
+            self.loadCheckpoint(self.savepath, self.memorysavepath)
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -146,7 +147,8 @@ class TrainSolver:
             progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
         print(" - Loss: " + str(sum_loss/TRAIN_FREQUENCY))
-        print("Sample Q Value: " + str(Q))
+        print("Sample Q Value: ")
+        print(str(Q))
 
     def evaluation(self):
         total_score = 0
@@ -177,23 +179,24 @@ class TrainSolver:
             self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
             self.state[:,3,:,:] = state
 
-    def checkpoint(self, savepath):
+    def checkpoint(self, savepath, memorysavepath):
         torch.save({
             'epoch': self.iteration,
             'frame': self.frame,
             'model_state_dict': self.agent.dqn.state_dict(),
             'optimizer_state_dict': self.agent.optimizer.state_dict(),
-            'memory': self.agent.memory
         }, savepath)
+        filehandler = open(memorysavepath, 'w')
+        pickle.dump(self.agent.memory, filehandler)
 
-    def loadCheckpoint(self, savepath):
+    def loadCheckpoint(self, savepath, memorysavepath):
         checkpoint = torch.load(savepath)
         self.agent.dqn.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.agent.memory = checkpoint['memory']
         self.iteration = checkpoint['epoch']
         self.frame = checkpoint['frame']
-        self.fram
+        filehandler = open(memorysavepath, 'r')
+        self.agent.memory = pickle.load(filehandler)
         print("loaded savemodel iteration = " + str(self.iteration))
 
 
