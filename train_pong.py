@@ -205,7 +205,7 @@ class TrainSolver:
             'memory': self.agent.memory
         }, savepath)
 
-    def loadCheckpoint(self, savepath, memorysavepath):
+    def loadCheckpoint(self, savepath):
         checkpoint = torch.load(savepath)
         self.agent.dqn.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
