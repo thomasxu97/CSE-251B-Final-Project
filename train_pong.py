@@ -175,7 +175,7 @@ class TrainSolver:
             prev_four_state = np.zeros((1, 4, 84, 84), dtype='uint8')
             prev_four_state[:,3,:,:] = state
             while not done:
-                action = self.agent.optimal_action(self.state)
+                action = self.agent.optimal_action(prev_four_state)
                 state, reward, done = self.env.step(action)
                 self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
                 self.state[:,3,:,:] = state
