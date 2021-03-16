@@ -34,18 +34,16 @@ def progressBar(i, max, text):
 
 class Agent:
     def __init__(self):
-        self.dqn = DQN(ACTION_SAPCE)
-        self.dqn.apply(self.init_weights)
-        self.dqn = self.dqn.double()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.policy_net = DQN(ACTION_SAPCE)
+        self.training_net = DQN(ACTION_SAPCE)
+        self.policy_net.apply(self.init_weights)
+        self.training_net.load_state_dict(self.policy_net.state_dict())
+        self.policy_net = self.policy_net.double().to(self.device)
+        self.training_net = self.training_net.double().to(self.device)
         self.memory = deque(maxlen = MAX_MEMORY)
-        self.optimizer = optim.Adam(self.dqn.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.Adam(self.training_net.parameters(), lr=LEARNING_RATE)
         self.criterion = torch.nn.MSELoss()
-        self.use_gpu = torch.cuda.is_available()
-        if self.use_gpu:
-            self.device = "cuda"
-        else:
-            self.device = "cpu"
-        self.dqn.to(self.device)
 
     def init_weights(self, m):
         if type(m) == torch.nn.Conv2d or type(m) == torch.nn.Linear:
@@ -58,20 +56,20 @@ class Agent:
     def evaluate_q(self, state):
         state = (state - 127)/255
         inputs = torch.from_numpy(state.copy()).to(self.device)
-        q_value = self.dqn(inputs).detach().cpu().numpy()
+        q_value = self.policy_net(inputs).detach().cpu().numpy()
         return q_value
 
     def optimal_action(self, state):
         state = (state - 127)/255
         inputs = torch.from_numpy(state.copy()).to(self.device)
-        q_value = self.dqn(inputs).detach().cpu().numpy()
+        q_value = self.policy_net(inputs).detach().cpu().numpy()
         return np.argmax(q_value)
 
     def optimize_step(self, state_batch, targetQ):
-        self.dqn.zero_grad()
+        self.training_net.zero_grad()
         state_batch = (state_batch - 127)/255
         inputs = torch.from_numpy(state_batch.copy()).to(self.device)
-        outputs = self.dqn(inputs)
+        outputs = self.training_net(inputs)
         targetQ = torch.from_numpy(targetQ.copy()).to(self.device)
         loss = self.criterion(outputs, targetQ)
         loss.backward()
@@ -80,14 +78,14 @@ class Agent:
 
 
 class TrainSolver:
-    def __init__(self):
+    def __init__(self, load = True):
         self.agent = Agent()
         self.env = Environment()
         self.env.reset()
         self.iteration = 0
         self.frame = 0
         self.savepath = "./ckpt/model.pt"
-        if path.exists(self.savepath):
+        if path.exists(self.savepath) and load:
             self.loadCheckpoint(self.savepath)
 
     # with some probability p: pick random action
@@ -163,6 +161,7 @@ class TrainSolver:
             sum_loss += loss
             progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
+        self.policy_net.load_state_dict(self.training_net.state_dict())
         print(" - Loss: " + str(sum_loss/TRAIN_FREQUENCY))
         print("Sampled Q Value: ")
         print(str(Q))
@@ -200,14 +199,15 @@ class TrainSolver:
         torch.save({
             'epoch': self.iteration,
             'frame': self.frame,
-            'model_state_dict': self.agent.dqn.state_dict(),
+            'model_state_dict': self.agent.policy_net.state_dict(),
             'optimizer_state_dict': self.agent.optimizer.state_dict(),
             'memory': self.agent.memory
         }, savepath)
 
     def loadCheckpoint(self, savepath):
         checkpoint = torch.load(savepath)
-        self.agent.dqn.load_state_dict(checkpoint['model_state_dict'])
+        self.agent.policy_net.load_state_dict(checkpoint['model_state_dict'])
+        self.agent.training_net.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.iteration = checkpoint['epoch']
         self.frame = checkpoint['frame']

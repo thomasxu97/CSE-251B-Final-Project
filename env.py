@@ -70,13 +70,15 @@ class Environment():
     def close(self):
         self.env.close()
 
-# env = Environment()
-# env.reset()
-# for i in range(1000):
-#     s, r, d = env.step(np.random.randint(6), render=True)
-#     print(d)
-#     if d:
-#         break
+env = Environment()
+env.reset()
+for i in range(100):
+    s, r, d = env.step(np.random.randint(6), render=True)
+    if d:
+        break
 
-# print(env.score)
+plt.imshow(s.reshape(84, 84))
+plt.savefig("sample_Tetris.png")
+
+print(env.score)
 
