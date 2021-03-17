@@ -135,8 +135,6 @@ class TrainSolver:
         sum_loss = 0
         state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
         next_state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
-        sum_five_reward = 0
-        sum_not_five_reward = 0
         while i < TRAIN_FREQUENCY:
             j = 0
             index_l = []
@@ -157,10 +155,6 @@ class TrainSolver:
             Q = self.agent.evaluate_q(state_batch)
             for j in range(BATCH_SIZE):
                 action, reward, done, state = self.agent.memory[index_l[j]]
-                if action == 5:
-                    sum_five_reward += reward
-                else:
-                    sum_not_five_reward += reward
                 if done:
                     Q[j][action] = reward
                 else:
@@ -173,8 +167,6 @@ class TrainSolver:
         print(" - Loss: " + str(sum_loss/TRAIN_FREQUENCY))
         print("Sampled Q Value: ")
         print(str(Q))
-        print("Five reward: " + str(sum_five_reward))
-        print("Not five reward: " + str(sum_not_five_reward))
 
     def evaluation(self):
         total_score = 0
@@ -186,8 +178,8 @@ class TrainSolver:
             while not done:
                 action = self.agent.optimal_action(prev_four_state)
                 state, reward, done = self.env.step(action)
-                self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
-                self.state[:,3,:,:] = state
+                prev_four_state[:,0:3,:,:] = prev_four_state[:,1:4,:,:]
+                prev_four_state[:,3,:,:] = state
                 total_score += reward
             progressBar(i + 1, EVALUATION_EPISODES, "Iteration " + str(self.iteration) + ": Evaluation Progress")
         print(" - Average Score: " + str(total_score/EVALUATION_EPISODES))
@@ -223,7 +215,7 @@ class TrainSolver:
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.iteration = checkpoint['epoch']
         self.frame = checkpoint['frame']
-        s = shelve.open('test_shelf.db')
+        s = shelve.open(memorysavepath)
         self.agent.memory = s['memory']
         s.close()        
 
