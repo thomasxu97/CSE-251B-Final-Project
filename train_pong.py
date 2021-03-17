@@ -4,24 +4,25 @@ from os import path
 from env_pong import Environment
 import numpy as np
 import random
+import shelve
 import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import sys
 
 
-NUM_ITERATION = 100
+NUM_ITERATION = 200
 LEARNING_RATE = 0.00025
-MAX_MEMORY = 50000
-EXPLORE_FREQUENCY = 5000
-TRAIN_FREQUENCY = 5000
+MAX_MEMORY = 5000000
+EXPLORE_FREQUENCY = 10000
+TRAIN_FREQUENCY = 10000
 EVALUATION_EPISODES = 10
 BATCH_SIZE = 32
 GAMMA = 0.99
 INITIAL_EXPLORATION = 1.0
 FINAL_EXPLORATION = 0.1
-INITIAL_EXPLORATION_FRAME = 25000
-FINAL_EXPLORATION_FRAME = 250000
+INITIAL_EXPLORATION_FRAME = 50000
+FINAL_EXPLORATION_FRAME = 500000
 ACTION_SAPCE = 6
 
 def progressBar(i, max, text):
@@ -85,8 +86,9 @@ class TrainSolver:
         self.iteration = 0
         self.frame = 0
         self.savepath = "./ckpt/model.pt"
+        self.memorysavepath = "./ckpt/memory.db"
         if path.exists(self.savepath) and load:
-            self.loadCheckpoint(self.savepath)
+            self.loadCheckpoint(self.savepath, self.memorysavepath)
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -133,6 +135,8 @@ class TrainSolver:
         sum_loss = 0
         state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
         next_state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
+        sum_five_reward = 0
+        sum_not_five_reward = 0
         while i < TRAIN_FREQUENCY:
             j = 0
             index_l = []
@@ -153,6 +157,10 @@ class TrainSolver:
             Q = self.agent.evaluate_q(state_batch)
             for j in range(BATCH_SIZE):
                 action, reward, done, state = self.agent.memory[index_l[j]]
+                if action == 5:
+                    sum_five_reward += reward
+                else:
+                    sum_not_five_reward += reward
                 if done:
                     Q[j][action] = reward
                 else:
@@ -161,10 +169,12 @@ class TrainSolver:
             sum_loss += loss
             progressBar(i + 1, TRAIN_FREQUENCY, "Iteration " + str(self.iteration) + ": Train Progress")
             i += 1
-        self.policy_net.load_state_dict(self.training_net.state_dict())
+        self.agent.policy_net.load_state_dict(self.agent.training_net.state_dict())
         print(" - Loss: " + str(sum_loss/TRAIN_FREQUENCY))
         print("Sampled Q Value: ")
         print(str(Q))
+        print("Five reward: " + str(sum_five_reward))
+        print("Not five reward: " + str(sum_not_five_reward))
 
     def evaluation(self):
         total_score = 0
@@ -195,24 +205,27 @@ class TrainSolver:
             self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
             self.state[:,3,:,:] = state
 
-    def checkpoint(self, savepath):
+    def checkpoint(self, savepath, memorysavepath):
         torch.save({
             'epoch': self.iteration,
             'frame': self.frame,
             'model_state_dict': self.agent.policy_net.state_dict(),
             'optimizer_state_dict': self.agent.optimizer.state_dict(),
-            'memory': self.agent.memory
         }, savepath)
+        s = shelve.open(memorysavepath)
+        s['memory'] = self.agent.memory
+        s.close()
 
-    def loadCheckpoint(self, savepath):
+    def loadCheckpoint(self, savepath, memorysavepath):
         checkpoint = torch.load(savepath)
         self.agent.policy_net.load_state_dict(checkpoint['model_state_dict'])
         self.agent.training_net.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.iteration = checkpoint['epoch']
         self.frame = checkpoint['frame']
-        self.agent.memory = checkpoint['memory']
-
+        s = shelve.open('test_shelf.db')
+        self.agent.memory = s['memory']
+        s.close()        
 
     def trainSolver(self):
         while self.iteration < NUM_ITERATION:
