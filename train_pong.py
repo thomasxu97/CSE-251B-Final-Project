@@ -4,7 +4,6 @@ from os import path
 from env_pong import Environment
 import numpy as np
 import random
-import shelve
 import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
