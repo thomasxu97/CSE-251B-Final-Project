@@ -86,9 +86,8 @@ class TrainSolver:
         self.iteration = 0
         self.frame = 0
         self.savepath = "./ckpt/model.pt"
-        self.memorysavepath = "./ckpt/memory.db"
         if path.exists(self.savepath) and load:
-            self.loadCheckpoint(self.savepath, self.memorysavepath)
+            self.loadCheckpoint(self.savepath)
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -133,8 +132,8 @@ class TrainSolver:
     def training(self):
         i = 0
         sum_loss = 0
-        state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
-        next_state_batch = np.zeros((BATCH_SIZE, 4, 84, 84))
+        state_batch = np.zeros((BATCH_SIZE, 4, 84, 84), dtype='uint8')
+        next_state_batch = np.zeros((BATCH_SIZE, 4, 84, 84), dtype='uint8')
         while i < TRAIN_FREQUENCY:
             j = 0
             index_l = []
@@ -146,11 +145,10 @@ class TrainSolver:
                     index_l.append(idx)
                     for k in range(4):
                         if self.agent.memory[idx-4+k] != None:
-                            state_batch[j,0,:,:] = self.agent.memory[idx-4+k][3]
+                            state_batch[j,k,:,:] = self.agent.memory[idx-4+k][3]
                     next_state_batch[j,0:3,:,:] = state_batch[j,1:4,:,:]
                     next_state_batch[j,3,:,:] = self.agent.memory[idx][3]
                 j += 1
-            assert len(index_l) == BATCH_SIZE
             V = np.amax(self.agent.evaluate_q(next_state_batch), axis=1)
             Q = self.agent.evaluate_q(state_batch)
             for j in range(BATCH_SIZE):
@@ -190,34 +188,28 @@ class TrainSolver:
         prev_four_state = np.zeros((1, 4, 84, 84), dtype='uint8')
         prev_four_state[:,3,:,:] = state
         while not done:
-            action = self.agent.optimal_action(self.state)
+            action = self.agent.optimal_action(prev_four_state)
             print(action)
-            print(self.agent.evaluate_q(self.state))
+            print(self.agent.evaluate_q(prev_four_state))
             state, reward, done = self.env.step(action, render = True)
-            self.state[:,0:3,:,:] = self.state[:,1:4,:,:]
-            self.state[:,3,:,:] = state
+            prev_four_state[:,0:3,:,:] = prev_four_state[:,1:4,:,:]
+            prev_four_state[:,3,:,:] = state
 
-    def checkpoint(self, savepath, memorysavepath):
+    def checkpoint(self, savepath):
         torch.save({
             'epoch': self.iteration,
             'frame': self.frame,
             'model_state_dict': self.agent.policy_net.state_dict(),
             'optimizer_state_dict': self.agent.optimizer.state_dict(),
         }, savepath)
-        s = shelve.open(memorysavepath)
-        s['memory'] = self.agent.memory
-        s.close()
 
-    def loadCheckpoint(self, savepath, memorysavepath):
-        checkpoint = torch.load(savepath)
+    def loadCheckpoint(self, savepath):
+        checkpoint = torch.load(savepath, map_location = torch.device('cpu'))
         self.agent.policy_net.load_state_dict(checkpoint['model_state_dict'])
         self.agent.training_net.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.iteration = checkpoint['epoch']
-        self.frame = checkpoint['frame']
-        s = shelve.open(memorysavepath)
-        self.agent.memory = s['memory']
-        s.close()        
+        self.frame = checkpoint['frame']     
 
     def trainSolver(self):
         while self.iteration < NUM_ITERATION:
@@ -225,7 +217,7 @@ class TrainSolver:
             self.training()
             self.evaluation()
             self.iteration += 1
-            self.checkpoint(self.savepath, self.memorysavepath)
+            self.checkpoint(self.savepath)
 
 
 trainSolver = TrainSolver()
