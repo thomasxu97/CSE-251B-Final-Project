@@ -144,7 +144,7 @@ class TrainSolver:
                 else:
                     index_l.append(idx)
                     for k in range(4):
-                        if self.agent.memory[idx-4+k] != None:
+                        if self.agent.memory[idx-4+k][3] is not None:
                             state_batch[j,k,:,:] = self.agent.memory[idx-4+k][3]
                     next_state_batch[j,0:3,:,:] = state_batch[j,1:4,:,:]
                     next_state_batch[j,3,:,:] = self.agent.memory[idx][3]
