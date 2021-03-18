@@ -87,6 +87,8 @@ class TrainSolver:
         self.savepath = "./ckpt/model.pt"
         if path.exists(self.savepath) and load:
             self.loadCheckpoint(self.savepath)
+            print("Successfully load model at iteration " + str(self.iteration) + ", frame " + str(self.frame) )
+            self.freeExplore()
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -210,7 +212,12 @@ class TrainSolver:
         self.agent.training_net.load_state_dict(checkpoint['model_state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.iteration = checkpoint['epoch']
-        self.frame = checkpoint['frame']     
+        self.frame = checkpoint['frame']
+
+    def freeExplore(self):
+        for i in range(30):  
+            self.exploration()
+            self.frame -= EXPLORE_FREQUENCY
 
     def trainSolver(self):
         while self.iteration < NUM_ITERATION:
@@ -219,6 +226,7 @@ class TrainSolver:
             self.evaluation()
             self.iteration += 1
             self.checkpoint(self.savepath)
+        # self.evaluation_with_render()
 
 
 trainSolver = TrainSolver()
