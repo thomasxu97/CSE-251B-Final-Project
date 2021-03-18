@@ -115,6 +115,8 @@ class TrainSolver:
             action = self.agent.optimal_action(prev_four_state)
             action = self.exploration_policy(action)
             state, reward, done = self.env.step(action)
+            if reward == -1:
+                done = True
             self.agent.add_to_memory(action, reward, done, state.copy())
             prev_four_state[0,0:3,:,:] = prev_four_state[0,1:4,:,:]
             prev_four_state[0,3,:,:] = state
