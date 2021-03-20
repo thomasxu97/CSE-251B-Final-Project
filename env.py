@@ -29,8 +29,8 @@ class Environment():
     # state preprocess
     # (240, 256, 3) -> (84, 84, 1)
     def state_preprocess(self, state):
-        state = state[44:212:2, 80:248:2, :]
-        state = (0.2989 * state[:,:,0] + 0.5870 * state[:,:,1] + 0.1140 * state[:,:,2] - 127)/255
+        state = state[44:212:2, 80:190:2, :]
+        state = 0.2989 * state[:,:,0] + 0.5870 * state[:,:,1] + 0.1140 * state[:,:,2]
         state = state.astype('uint8')
         return state
 
@@ -58,15 +58,14 @@ class Environment():
     def close(self):
         self.env.close()
 
-# env = Environment()
-# env.reset()
-# for i in range(100):
-#     s, r, d = env.step(np.random.randint(6), render=True)
-#     if d:
-#         break
+env = Environment()
+env.reset()
+for i in range(1000):
+    s, r, d = env.step(np.random.randint(6), render=True)
+    if d:
+        break
 
-# plt.imshow(s.reshape(84, 84))
-# plt.savefig("sample_Tetris.png")
-
-# print(env.score)
+np.save("env.npy", s)
+plt.imshow(s.reshape(84, 55))
+plt.savefig("sample_Tetris.png")
 

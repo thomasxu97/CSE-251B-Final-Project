@@ -88,7 +88,7 @@ class TrainSolver:
         if path.exists(self.savepath) and load:
             self.loadCheckpoint(self.savepath)
             print("Successfully load model at iteration " + str(self.iteration) + ", frame " + str(self.frame) )
-            self.freeExplore()
+            #self.freeExplore()
 
     # with some probability p: pick random action
     # other wise: pick optimal_action given
@@ -220,13 +220,13 @@ class TrainSolver:
             self.frame -= EXPLORE_FREQUENCY
 
     def trainSolver(self):
-        while self.iteration < NUM_ITERATION:
-            self.exploration()
-            self.training()
-            self.evaluation()
-            self.iteration += 1
-            self.checkpoint(self.savepath)
-        # self.evaluation_with_render()
+        # while self.iteration < NUM_ITERATION:
+        #     self.exploration()
+        #     self.training()
+        #     self.evaluation()
+        #     self.iteration += 1
+        #     self.checkpoint(self.savepath)
+        self.evaluation_with_render()
 
 
 trainSolver = TrainSolver()
